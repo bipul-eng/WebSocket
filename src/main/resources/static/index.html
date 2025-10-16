@@ -2,18 +2,130 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Spring Boot WebSocket Demo</title>
+  <title>Spring Boot WebSocket Chat</title>
   <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    html, body { height: 100%; width: 100%; }
+
+    body {
+      background: #f0f2f5;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+    }
+
+    .chat-header {
+      background: #4CAF50;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5em;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background: #e9eff7;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .message {
+      padding: 10px 14px;
+      border-radius: 18px;
+      max-width: 70%;
+      word-wrap: break-word;
+      font-size: 0.95em;
+      line-height: 1.3;
+    }
+
+    .message.other {
+      background: #007bff;
+      color: white;
+      align-self: flex-start;
+    }
+
+    .message.self {
+      background: #28a745;
+      color: white;
+      align-self: flex-end;
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 12px;
+      border-top: 1px solid #ddd;
+      background: #fff;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 10px 15px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      outline: none;
+      font-size: 0.95em;
+    }
+
+    .chat-input input:focus {
+      border-color: #4CAF50;
+    }
+
+    .chat-input button {
+      flex-shrink: 0;
+      background: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.95em;
+      transition: background 0.2s;
+    }
+
+    .chat-input button:hover {
+      background: #45a049;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background-color: rgba(0,0,0,0.2);
+      border-radius: 3px;
+    }
+
+    @media (max-width: 600px) {
+      .chat-input input { padding: 8px 10px; font-size: 0.9em; }
+      .chat-input button { padding: 8px 15px; font-size: 0.9em; }
+    }
+  </style>
 </head>
 <body>
-  <h2>Spring Boot WebSocket Chat</h2>
-  <div>
-    <input type="text" id="from" placeholder="Your name" />
-    <input type="text" id="content" placeholder="Message" />
-    <button onclick="sendMessage()">Send</button>
+
+  <div class="chat-container">
+    <div class="chat-header">Spring Boot WebSocket Chat</div>
+    <div class="chat-messages" id="messages"></div>
+    <div class="chat-input">
+      <input type="text" id="from" placeholder="Your name" />
+      <input type="text" id="content" placeholder="Type a message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
   </div>
-  <div id="messages"></div>
 
   <script>
     let stompClient = null;
@@ -26,18 +138,35 @@
 
         stompClient.subscribe('/topic/messages', msg => {
           const message = JSON.parse(msg.body);
-          document.getElementById('messages').innerHTML += `<p><b>${message.from}:</b> ${message.content}</p>`;
+          const messageEl = document.createElement('div');
+          messageEl.classList.add('message');
+
+          if (message.from === document.getElementById('from').value) {
+            messageEl.classList.add('self');
+          } else {
+            messageEl.classList.add('other');
+          }
+
+          messageEl.textContent = `${message.from}: ${message.content}`;
+          document.getElementById('messages').appendChild(messageEl);
+
+          const messagesDiv = document.getElementById('messages');
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
       });
     }
 
     function sendMessage() {
-      const from = document.getElementById('from').value;
-      const content = document.getElementById('content').value;
-      stompClient.send("/app/chat", {}, JSON.stringify({ 'from': from, 'content': content }));
+      const from = document.getElementById('from').value.trim();
+      const content = document.getElementById('content').value.trim();
+      if (from && content) {
+        stompClient.send("/app/chat", {}, JSON.stringify({ 'from': from, 'content': content }));
+        document.getElementById('content').value = '';
+      }
     }
 
     connect();
   </script>
+
 </body>
 </html>
