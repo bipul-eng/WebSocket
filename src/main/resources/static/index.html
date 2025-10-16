@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spring Boot WebSocket Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+  <h2>Spring Boot WebSocket Chat</h2>
+  <div>
+    <input type="text" id="from" placeholder="Your name" />
+    <input type="text" id="content" placeholder="Message" />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+  <div id="messages"></div>
+
+  <script>
+    let stompClient = null;
+
+    function connect() {
+      const socket = new SockJS('/ws');
+      stompClient = Stomp.over(socket);
+      stompClient.connect({}, frame => {
+        console.log('Connected: ' + frame);
+
+        stompClient.subscribe('/topic/messages', msg => {
+          const message = JSON.parse(msg.body);
+          document.getElementById('messages').innerHTML += `<p><b>${message.from}:</b> ${message.content}</p>`;
+        });
+      });
+    }
+
+    function sendMessage() {
+      const from = document.getElementById('from').value;
+      const content = document.getElementById('content').value;
+      stompClient.send("/app/chat", {}, JSON.stringify({ 'from': from, 'content': content }));
+    }
+
+    connect();
+  </script>
+</body>
+</html>
